@@ -5,7 +5,7 @@ July, 2023
 
 ## **Related Recordings**
 
-- [DBMS_CLOUD Package}(https://www.youtube.com/watch?v=RvIPCXiz_vE)
+- [DBMS_CLOUD Package](https://www.youtube.com/watch?v=RvIPCXiz_vE)
 - [ORDS Install and Config](https://www.youtube.com/watch?v=RvIPCXiz_vE)
 - [Autonomous Database for Legacy Database Developers](https://www.youtube.com/watch?v=EbrG4-K-TzY)
 
