@@ -3,20 +3,20 @@
 Derrick Cameron, Steve Nichols
 July, 2023
 
-## **Introduction** 
+## **Related Recordings**
 
-This documents a case study from work with a customer who had the following requirements (not strictly limited to dbms_cloud features):
-- Automated load that processes data from daily and weekly csv files in Object Storage.
-- Deletes the files once they are loaded (or optionally move to a new 'processed' bucket).
-- Log load processes.
-- Audit updates to data with information about what was changed and when.
-- Provide a dashboard that shows various daily, weekly and quarterly metrics current and prior measures, with logic that handles missing data points.
+- [DBMS_CLOUD Package}(https://www.youtube.com/watch?v=RvIPCXiz_vE)
+- [ORDS Install and Config](https://www.youtube.com/watch?v=RvIPCXiz_vE)
+- [Autonomous Database for Legacy Database Developers](https://www.youtube.com/watch?v=EbrG4-K-TzY)
 
-There are various ways to do this, and the availability of cloud services such as events (detection of file uploads to object storage) and functions (process to load the data), use of these services is often the preferred approach (see an example of this [here](https://github.com/oracle/oracle-functions-samples/tree/master/samples/oci-load-file-into-adw-python)).  This is certainly the case where processes are orchestrated and may involve other cloud services, however it does add some complexity, other dependent platforms and services, and the need to master python or java.
+## **Agenda** 
 
-This documents an alternative approach that only requires the use of SQL (which is needed in any case) and no other platform.  It is scalable and can process millions of records in seconds even using a minimal 1-ocpu ADB shape, and also offers the full power of the SQL language to handle the processing of object storage files as though they were native database files.  To illustrate we'll use data from the sh schema that is available in every Oracle Database so others can replicate these steps in their own environment.  We'll copy the *sales* table from the *sh* schema to a new *demo* schema so we can update it, but will leave the other sh tables as is and will be querying them.
+- Common Use Cases
+- Historical Options
+- New Cloud Based Options
+- Code Innovate Program Overview
 
-## **Step 1:** Create an Auth Token so ADB Can read files in Object Storage:
+## **Common Customer Use Cases**
 
 - Navigate to your users
 
