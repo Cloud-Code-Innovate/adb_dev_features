@@ -1,0 +1,16 @@
+{
+    "workshoptitle": "Load data in ADB Using DBMS_CLOUD",
+    "help": "",
+    "include": {
+        "import": "../../common/import_notebook.md"
+    },
+    "tutorials": [
+        {         
+            "title": "Load data in ADB Using DBMS_CLOUD",
+            "description": "Case Study in the Use of DBMS_CLOUD (and Other Core Database Features) to Automate Loading Data into Autonomous Database (ADB)",
+            "publisheddate": "7/12/2021",
+            "filename": "README.md"
+        }
+
+    ]
+}
