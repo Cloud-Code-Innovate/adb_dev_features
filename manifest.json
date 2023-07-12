@@ -1,14 +1,14 @@
 {
-    "workshoptitle": "Load data in ADB Using DBMS_CLOUD",
+    "workshoptitle": "Oracle Autonomous Database Features for Supporting Application Development Across Cloud Services",
     "help": "",
     "include": {
         "import": "../../common/import_notebook.md"
     },
     "tutorials": [
         {         
-            "title": "Load data in ADB Using DBMS_CLOUD",
-            "description": "Case Study in the Use of DBMS_CLOUD (and Other Core Database Features) to Automate Loading Data into Autonomous Database (ADB)",
-            "publisheddate": "7/12/2021",
+            "title": "Oracle Autonomous Database Features for Supporting Application Development Across Cloud Services",
+            "description": "Explore the ways in which applications in ADB can interact and exchange data with other cloud services",
+            "publisheddate": "7/12/2023",
             "filename": "README.md"
         }
 
