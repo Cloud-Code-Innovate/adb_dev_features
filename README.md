@@ -11,8 +11,7 @@ July, 2023
 
 ## **Export Data to Object Storage and Query Data in Object Storage** 
 
-'''
-
+```
 SELECT * FROM DBMS_CLOUD.LIST_OBJECTS('API_TOKEN', '<object storage bucket URI>');
 
 BEGIN
@@ -50,7 +49,7 @@ column_list => 'project_id number,
     employee_id number');
 end;
 /
-'''
+```
 
 ## **Common Customer Use Cases**
 
