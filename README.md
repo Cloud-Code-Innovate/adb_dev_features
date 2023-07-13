@@ -251,14 +251,20 @@ covid19	cdc_data	27-MAR-23 08.35.11.782836000 PM	27-MAR-23 08.35.11.782836000 PM
 dsnm1232	ds1232	30-MAY-23 12.21.43.000000000 PM	30-MAY-23 12.21.43.000000000 PM	N	
 DGCADW	SALES_EXTENDED	07-JUL-23 05.41.31.000000000 PM	07-JUL-23 05.41.31.000000000 PM	N
 
--- usage notes/restrictions (significant)
-https://docs.oracle.com/en/cloud/paas/autonomous-database/adbsa/autonomous-cloud-links.html#GUID-5CABFB6F-370D-4B9E-BC88-DB94D221CE53
+</copy>
 
 ```
+
+- Usage notes/restrictions (significant)
+
+https://docs.oracle.com/en/cloud/paas/autonomous-database/adbsa/autonomous-cloud-links.html#GUID-5CABFB6F-370D-4B9E-BC88-DB94D221CE53
+
+
 ## **Persistent Pipes**
 
 ```
 <copy>
+
 -- as admin
 grant execute on dbms_pipe to demo;
 
@@ -496,7 +502,7 @@ BEGIN
 END;
 /
 
-
+</copy>
 
 ```
 
