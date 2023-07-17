@@ -506,3 +506,115 @@ END;
 
 ```
 
+## **DBMS_CLOUD Object Storage Functions and APEX Function in a Procedure**
+```
+<copy>
+create or replace procedure DCauditLoad as 
+    -- Constants 
+    os_url              constant varchar2(150) := 'https://objectstorage.{region}.oraclecloud.com/n/{namespace}/b/{bucket_name}/o/';
+    os_audit_inbox      constant varchar2(50) := 'zip-inbox/';
+    os_audit_processed  constant varchar2(50) := 'zip-processed/';
+    os_audit_temp       constant varchar2(50) := 'csv-temp/';
+    db_cred_name        constant varchar2(50) := 'OCI_OS_CRED';
+    -- Cursor to return ZIP files in AUDIT-INBOX Object Storage Bucket
+    CURSOR c_objects is SELECT object_name FROM DBMS_CLOUD.LIST_OBJECTS(db_cred_name, os_url || os_audit_inbox) where object_name like '%.zip';
+    -- General Variables
+    l_zip               blob;
+    l_uncompressed_zip  blob;
+    l_files             apex_zip.t_files;
+    l_filename          varchar2(100);
+    insert_count        INTEGER;
+    update_count        INTEGER;
+BEGIN
+    dbms_output.put_line(SYSTIMESTAMP);
+    -- Initialize BLOBs 
+    dbms_lob.createtemporary(l_uncompressed_zip, true);    
+    -- Loop through Objects returned from cursor
+    FOR r_object IN c_objects LOOP
+        dbms_output.put_line(r_object.object_name);
+        -- Get Zip file from Object Storage
+        l_zip :=  DBMS_CLOUD.GET_OBJECT(credential_name => db_cred_name,object_uri => os_url || os_audit_inbox || r_object.object_name);
+        -- Get the list of files in ZIP file.
+        l_files := apex_zip.get_files(p_zipped_blob => l_zip);
+        -- Loop through the files in Zip File and get/uncompress the content
+        for i in 1 .. l_files.count loop
+            insert_count := 0;
+            update_count := 0;
+            dbms_output.put_line(i || ' : ' || l_files(i));
+            l_filename := l_files(i);
+            dbms_lob.copy(dest_lob => l_uncompressed_zip,
+                          src_lob => apex_zip.get_file_content (p_zipped_blob => l_zip,p_file_name => l_files(i)),
+                          amount => dbms_lob.lobmaxsize);
+            -- Save CSV to temp OS Folder
+            DBMS_CLOUD.PUT_OBJECT(credential_name => db_cred_name,object_uri => os_url || os_audit_temp || l_files(i),contents => l_uncompressed_zip);
+            BEGIN
+                -- Truncate Stage Table
+                execute immediate 'truncate table audit_records_stage_cd';
+                --  Insert CSV Records into Table
+                DBMS_CLOUD.COPY_DATA(
+                    table_name => 'audit_records_stage_cd', 
+                    credential_name => db_cred_name, 
+                    file_uri_list => os_url || os_audit_temp || l_files(i), 
+                    format => json_object('type' value 'CSV WITH EMBEDDED',
+                                          'delimiter' value ',', 
+                                          'skipheaders' value 1, 
+                                          'quote' value '"', 
+                                          'dateformat' value 'mm/dd/yy hh:mi AM', 
+                                          'ignoremissingcolumns' value 'true', 
+                                          'blankasnull' value 'true', 
+                                          'rejectlimit' value 100)
+                );
+                dbms_output.put_line(SYSTIMESTAMP);
+                --  Update Table, Text-To-Columns for Dimension POV
+                update audit_records_stage_cd
+                set AUDIT_dim_scenario = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 1),'"','')),
+                    AUDIT_dim_account = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 2),'"','')),
+                    AUDIT_dim_entity = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 3),'"','')),
+                    AUDIT_dim_period = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 4),'"','')),
+                    AUDIT_dim_view = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 5),'"','')),
+                    AUDIT_dim_currency = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 6),'"','')),
+                    AUDIT_dim_years = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 7),'"','')),
+                    AUDIT_dim_movement = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 8),'"','')),
+                    AUDIT_dim_data_source = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 9),'"','')),
+                    AUDIT_dim_consolidation = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 10),'"','')),
+                    AUDIT_dim_intercompany = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 11),'"','')),
+                    AUDIT_dim_multi_gaap = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 12),'"','')),
+                    AUDIT_dim_product = trim(replace(REGEXP_SUBSTR(audit_details, '[^,]+', 1, 13),'"',''))
+                where audit_type = 'Data' and audit_ACTION = 'Modify';            
+                update_count:=   sql%Rowcount;
+                dbms_output.put_line('No Of rows UPDATE '||update_count);
+                commit;
+                --  Insert Stage Records into Master Table
+                insert into audit_records (AUDIT_DATE,AUDIT_TYPE,AUDIT_SOURCE,AUDIT_ACTION,
+                               AUDIT_USER,AUDIT_NAME,AUDIT_DETAILS,AUDIT_PROPERTY,
+                               AUDIT_OLD_VALUE,AUDIT_NEW_VALUE,AUDIT_dim_scenario,
+                               AUDIT_dim_account,AUDIT_dim_entity,AUDIT_dim_period,
+                               AUDIT_dim_view,AUDIT_dim_currency,AUDIT_dim_years,
+                               AUDIT_dim_movement,AUDIT_dim_data_source,
+                               AUDIT_dim_consolidation,AUDIT_dim_intercompany,
+                               AUDIT_dim_multi_gaap,AUDIT_dim_product) 
+                               select * from audit_records_stage_cd;
+                insert_count:=   sql%Rowcount;
+                dbms_output.put_line('No Of rows INSERT '||insert_count);
+                commit;
+                -- Delete the CSV saved to temp OS Folder
+                DBMS_CLOUD.DELETE_OBJECT(credential_name => db_cred_name,object_uri => os_url || os_audit_temp || l_files(i));
+                -- Insert complete ZIP into table for backup purposes
+                INSERT INTO AUDIT_CSV_FILES (ZIP_FILE_NAME, CSV_FILE_NAME, CSV_FILE_CONTENTS, INSERT_ROWS,UPDATE_ROWS) 
+                    VALUES (r_object.object_name, l_filename, l_uncompressed_zip, insert_count, update_count);
+                commit;    
+            END;
+        end loop; -- End Loop for Files inside of ZIP file
+        -- Move processed ZIP from INBOX to PROCESSED
+        DBMS_CLOUD.MOVE_OBJECT (
+            source_credential_name => db_cred_name,
+            source_object_uri    => os_url || os_audit_inbox || r_object.object_name,
+            target_object_uri    => os_url || os_audit_processed || r_object.object_name
+        );
+    END LOOP; -- End Loop for OS .zip files
+    dbms_output.put_line(SYSTIMESTAMP);
+    -- Free temporary BLOBs    
+    dbms_lob.freetemporary(l_uncompressed_zip);
+END DCauditLoad;
+</copy>
+```
